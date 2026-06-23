@@ -123,10 +123,11 @@ export default async function handler(req, res) {
   /* OPTIONS preflight */
   if (req.method === 'OPTIONS') {
     return res.status(204).end();
-
+}
   /* Method guard */
   if (req.method !== 'POST') {
     return res.status(405).json({ success: false, error: 'Method not allowed' });
+}
 
   /* Rate limiting */
   const ip = req.headers['x-forwarded-for']?.split(',')[0]?.trim()
@@ -150,17 +151,22 @@ export default async function handler(req, res) {
   let body;
   try {
     body = typeof req.body === 'string' ? JSON.parse(req.body) : req.body;
-  } catch {
-    return return res.status(400).json({ success: false, error: 'Invalid JSON body' });
+} catch {
+  return res.status(400).json({
+    success: false,
+    error: 'Invalid JSON body'
+  });
+}
 
-  /* Validate */
-  const { valid, errors } = validateAnalyzeRequest(body);
+/* Validate */
+const { valid, errors } = validateAnalyzeRequest(body);
   if (!valid) {
     return res.status(400).json({
   success: false,
   error: 'Validation failed',
   details: errors
 });
+}
 
   const { stockName, sector, industry = '', metrics, scores, horizon = 20 } = body;
   const cacheKey = makeCacheKey(stockName, horizon);
@@ -209,7 +215,7 @@ export default async function handler(req, res) {
     const isKeyErr   = aiErr.message?.includes('API key') || aiErr.status === 401;
     const isQuotaErr = aiErr.status === 429 || aiErr.message?.includes('quota');
 
-    return res.status(502).set(CORS).json({
+    return res.status(502).json({
       success   : false,
       error     : isKeyErr   ? 'OpenAI API key invalid or missing on server'
                 : isQuotaErr ? 'OpenAI quota exceeded. Try again later.'
@@ -222,7 +228,7 @@ export default async function handler(req, res) {
   const generatedAt = new Date().toISOString();
   cacheSet(cacheKey, { verdict, generatedAt });
 
-  return res.status(200).set(CORS).json({
+  return res.status(200).json({
     success     : true,
     verdict,
     cached      : false,
