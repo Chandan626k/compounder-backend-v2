@@ -118,7 +118,7 @@ function makeCacheKey(stockName, horizon) {
 
 /* ── Main handler ── */
 export default async function handler(req, res) {
-  const requestId = req.headers['x-request-id'] || crypto.randomUUID?.() || Date.now().toString();
+  const requestId = req.headers['x-request-id'] || Date.now().toString();
 
   /* OPTIONS preflight */
   if (req.method === 'OPTIONS') {
