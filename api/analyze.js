@@ -122,13 +122,11 @@ export default async function handler(req, res) {
 
   /* OPTIONS preflight */
   if (req.method === 'OPTIONS') {
-    return res.status(204).set(CORS).end();
-  }
+    return res.status(204).end();
 
   /* Method guard */
   if (req.method !== 'POST') {
-    return res.status(405).set(CORS).json({ success: false, error: 'Method not allowed' });
-  }
+    return res.status(405).json({ success: false, error: 'Method not allowed' });
 
   /* Rate limiting */
   const ip = req.headers['x-forwarded-for']?.split(',')[0]?.trim()
@@ -141,7 +139,7 @@ export default async function handler(req, res) {
   res.setHeader('X-RateLimit-Reset',     rate.resetAt);
 
   if (rate.limited) {
-    return res.status(429).set(CORS).json({
+    return res.status(429).json({
       success  : false,
       error    : 'Rate limit exceeded. 10 requests per minute allowed.',
       resetAt  : rate.resetAt,
@@ -153,14 +151,16 @@ export default async function handler(req, res) {
   try {
     body = typeof req.body === 'string' ? JSON.parse(req.body) : req.body;
   } catch {
-    return res.status(400).set(CORS).json({ success: false, error: 'Invalid JSON body' });
-  }
+    return return res.status(400).json({ success: false, error: 'Invalid JSON body' });
 
   /* Validate */
   const { valid, errors } = validateAnalyzeRequest(body);
   if (!valid) {
-    return res.status(400).set(CORS).json({ success: false, error: 'Validation failed', details: errors });
-  }
+    return res.status(400).json({
+  success: false,
+  error: 'Validation failed',
+  details: errors
+});
 
   const { stockName, sector, industry = '', metrics, scores, horizon = 20 } = body;
   const cacheKey = makeCacheKey(stockName, horizon);
@@ -169,7 +169,7 @@ export default async function handler(req, res) {
   const cached = cacheGet(cacheKey);
   if (cached) {
     console.log(`[CACHE HIT] ${cacheKey} | requestId=${requestId}`);
-    return res.status(200).set(CORS).json({
+    return res.status(200).json({
       success     : true,
       verdict     : cached.verdict,
       cached      : true,
