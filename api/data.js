@@ -366,14 +366,121 @@ export default async function handler(req, res) {
       let   result   = cacheGet(cacheKey);
 
       if (!result) {
-        const modules = 'summaryDetail,defaultKeyStatistics,financialData,assetProfile,price';
-        const raw     = await yahooFetch(
-          `https://query1.finance.yahoo.com/v11/finance/quoteSummary/${sym}?modules=${modules}&crumb=`
+        // Use the reliable v7/finance/quote endpoint (no crumb required)
+        const raw = await yahooFetch(
+          `https://query1.finance.yahoo.com/v7/finance/quote?symbols=${sym}`
         );
-        const yahooErr = raw?.quoteSummary?.error;
-        if (yahooErr) throw new Error(yahooErr.description || JSON.stringify(yahooErr));
-        result = raw?.quoteSummary?.result?.[0];
-        if (!result) throw new Error(`No fundamental data returned for "${sym}"`);
+        const quote = raw?.quoteResponse?.result?.[0];
+        if (!quote) throw new Error(`No fundamental data returned for "${sym}"`);
+
+        // Map the quote response to the expected quoteSummary structure
+        result = {
+          price: {
+            regularMarketPrice: quote.regularMarketPrice,
+            regularMarketChange: quote.regularMarketChange,
+            regularMarketChangePercent: quote.regularMarketChangePercent,
+            regularMarketDayHigh: quote.regularMarketDayHigh,
+            regularMarketDayLow: quote.regularMarketDayLow,
+            regularMarketVolume: quote.regularMarketVolume,
+            averageDailyVolume3Month: quote.averageDailyVolume3Month,
+            averageDailyVolume10Day: quote.averageDailyVolume10Day,
+            fiftyTwoWeekHigh: quote.fiftyTwoWeekHigh,
+            fiftyTwoWeekLow: quote.fiftyTwoWeekLow,
+            fiftyTwoWeekChangePercent: quote.fiftyTwoWeekChangePercent,
+            marketCap: quote.marketCap,
+            priceToEarning: quote.trailingPE,
+            dividendYield: quote.dividendYield,
+            dividendRate: quote.dividendRate,
+            payoutRatio: quote.payoutRatio,
+            beta: quote.beta,
+            forwardPE: quote.forwardPE,
+            priceToBook: quote.priceToBook,
+            epsTrailingTwelveMonths: quote.epsTrailingTwelveMonths,
+            epsForward: quote.epsForward,
+            sharesOutstanding: quote.sharesOutstanding,
+            floatShares: quote.floatShares,
+            shortPercentOfFloat: quote.shortPercentOfFloat,
+            shortRatio: quote.shortRatio,
+            bookValue: quote.bookValue,
+            profitMargins: quote.profitMargins,
+            grossMargins: quote.grossMargins,
+            operatingMargins: quote.operatingMargins,
+            returnOnAssets: quote.returnOnAssets,
+            returnOnEquity: quote.returnOnEquity,
+            revenue: quote.revenue,
+            grossProfits: quote.grossProfits,
+            freeCashflow: quote.freeCashflow,
+            totalCash: quote.totalCash,
+            totalDebt: quote.totalDebt,
+            quickRatio: quote.quickRatio,
+            currentRatio: quote.currentRatio,
+            debtToEquity: quote.debtToEquity,
+            revenuePerShare: quote.revenuePerShare,
+            earningsQuarterlyGrowth: quote.earningsQuarterlyGrowth,
+            revenueQuarterlyGrowth: quote.revenueQuarterlyGrowth,
+            recommendationMean: quote.recommendationMean,
+            numberOfAnalystOpinions: quote.numberOfAnalystOpinions,
+            targetHighPrice: quote.targetHighPrice,
+            targetLowPrice: quote.targetLowPrice,
+            targetMeanPrice: quote.targetMeanPrice,
+            targetMedianPrice: quote.targetMedianPrice,
+            currency: quote.currency,
+            exchange: quote.exchange,
+            shortName: quote.shortName,
+            longName: quote.longName,
+            sector: quote.sector,
+            industry: quote.industry,
+          },
+          summaryDetail: {
+            previousClose: quote.regularMarketPreviousClose,
+            open: quote.regularMarketOpen,
+            dayHigh: quote.regularMarketDayHigh,
+            dayLow: quote.regularMarketDayLow,
+            volume: quote.regularMarketVolume,
+            averageVolume: quote.averageDailyVolume3Month,
+            averageVolume10days: quote.averageDailyVolume10Day,
+            fiftyTwoWeekHigh: quote.fiftyTwoWeekHigh,
+            fiftyTwoWeekLow: quote.fiftyTwoWeekLow,
+            marketCap: quote.marketCap,
+            trailingPE: quote.trailingPE,
+            forwardPE: quote.forwardPE,
+            dividendYield: quote.dividendYield,
+            dividendRate: quote.dividendRate,
+            payoutRatio: quote.payoutRatio,
+            beta: quote.beta,
+            bookValue: quote.bookValue,
+            priceToBook: quote.priceToBook,
+          },
+          defaultKeyStatistics: {
+            sharesOutstanding: quote.sharesOutstanding,
+            floatShares: quote.floatShares,
+            shortPercentOfFloat: quote.shortPercentOfFloat,
+            shortRatio: quote.shortRatio,
+            profitMargins: quote.profitMargins,
+            grossMargins: quote.grossMargins,
+            operatingMargins: quote.operatingMargins,
+            returnOnAssets: quote.returnOnAssets,
+            returnOnEquity: quote.returnOnEquity,
+            earningsQuarterlyGrowth: quote.earningsQuarterlyGrowth,
+            revenueQuarterlyGrowth: quote.revenueQuarterlyGrowth,
+          },
+          financialData: {
+            revenue: quote.revenue,
+            grossProfits: quote.grossProfits,
+            freeCashflow: quote.freeCashflow,
+            totalCash: quote.totalCash,
+            totalDebt: quote.totalDebt,
+            quickRatio: quote.quickRatio,
+            currentRatio: quote.currentRatio,
+            debtToEquity: quote.debtToEquity,
+            revenuePerShare: quote.revenuePerShare,
+          },
+          assetProfile: {
+            sector: quote.sector,
+            industry: quote.industry,
+            longBusinessSummary: quote.longBusinessSummary || '',
+          },
+        };
         cacheSet(cacheKey, result);
       }
 
